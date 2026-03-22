@@ -67,23 +67,22 @@ df_pandas = pd.DataFrame(dataset)
 
 # Data Cleaning
 # In this section we will start to inspect and understand the nature of our dataset
-#df_pandas.info()
-
-#df = df_pandas.describe().T
-#print(tabulate(df, headers='keys', tablefmt='psql'))
+"""df_pandas.info()
+df = df_pandas.describe().T
+print(tabulate(df, headers='keys', tablefmt='psql'))"""
 
 # Checking for null values in the duplicate dataset
-#df_pandas_test = df_pandas.copy()
-#df_pandas_test.loc[0] = [np.nan, 1209, 1577, 743, 1028, 1969, 1932, 1587, 87, -2336, -914]
-#df = df_pandas_test.describe().T
+"""df_pandas_test = df_pandas.copy()
+df_pandas_test.loc[0] = [np.nan, 1209, 1577, 743, 1028, 1969, 1932, 1587, 87, -2336, -914]
+df = df_pandas_test.describe().T"""
 
 #Adding null value
-#df = df_pandas_test[df_pandas_test.isnull().any(axis=1)]
-#print(tabulate(df, headers='keys', tablefmt='psql'))
+"""df = df_pandas_test[df_pandas_test.isnull().any(axis=1)]
+print(tabulate(df, headers='keys', tablefmt='psql'))"""
 
 # Get a sample so we can speed up expensive visualizations
-#sampledDf = df_pandas.sample(frac=0.1)
-#sampledDf.info()
+"""sampledDf = df_pandas.sample(frac=0.1)
+sampledDf.info()"""
 
 # EDA (Exploratory Data Analysis)
 # Correlation plots with water points as orange
@@ -92,13 +91,50 @@ sns.pairplot(df_pandas, hue='water', palette='Set1',kind='reg')
 plt.savefig('output/modisWaterTrainingEDA_Correlation_WaterHighlight.png')"""
 
 # Distribution for each channel
-colms = df_pandas.select_dtypes(include=['number']).columns
+"""colms = df_pandas.select_dtypes(include=['number']).columns
 for col in colms:
     plt.figure(figsize=(8,4))
-    sns.histplot(df_pandas[col], kde=True, color='teal')
+    sns.histplot(df_pandas[col], kde=True, bins=80, color='teal')
     plt.title(f'Distribution of {col}')
-    plt.show()
+    plt.show()"""
 
+# Correlation calculations
+"""corr = df_pandas.corr()['water']
+corr.to_csv('output/correlation.csv')
+print(corr)"""
+
+# full correlation table
+"""heatmap = df_pandas.corr()
+plt.figure(figsize=(15,11))
+hp = sns.heatmap(heatmap, annot=True, cmap='Greens', fmt='.5f')
+plt.savefig('output/heatmap.png')"""
+
+# Another coorelation histogram
+"""plt.figure(figsize=(20, 14))
+
+for i, c in enumerate(df_pandas.select_dtypes(include='number').columns):
+    plt.subplot(4,3,i+1)
+    sns.distplot(df_pandas[c])
+    plt.title('Distribution plot for field:' + c)
+    plt.xlabel('')
+    plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+plt.savefig('output/output_dist_modis_water.png')"""
+
+# Targeting specific distribution of specific features when related to the corresponding label
+"""df_pandas.hist(column='sur_refl_b01_1', by='water', bins=30, grid=True, figsize=(8, 10), layout=(2, 1), zorder=2, rwidth=0.9, sharex=False)
+plt.savefig('output/b01_dist.png')"""
+
+plt.figure(figsize=(20,14))
+
+for i, col in enumerate(df_pandas.select_dtypes(include='number').columns):
+    if i != 0:
+        print(i, col)
+        plt.subplot(1,10,i)
+        df_pandas.hist(column=col, by='water', bins=30, grid=True, figsize=(8, 10), layout=(2, 1), zorder=2, rwidth=0.9, sharex=False)
+        plt.title(f'Distribution plot for: {col}')
+        #plt.xlabel('')
+        plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+plt.savefig('output/binary_dist_analysis.png')
 
 
 
