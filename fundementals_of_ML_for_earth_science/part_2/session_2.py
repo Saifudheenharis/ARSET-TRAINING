@@ -121,20 +121,51 @@ for i, c in enumerate(df_pandas.select_dtypes(include='number').columns):
 plt.savefig('output/output_dist_modis_water.png')"""
 
 # Targeting specific distribution of specific features when related to the corresponding label
-"""df_pandas.hist(column='sur_refl_b01_1', by='water', bins=30, grid=True, figsize=(8, 10), layout=(2, 1), zorder=2, rwidth=0.9, sharex=False)
-plt.savefig('output/b01_dist.png')"""
+# Using Matplotlib
+"""for col in df_pandas.select_dtypes(include='number').columns[1:]:
+    df_pandas.hist(column=col, by='water', bins=50, grid=True, figsize=(8, 10), layout=(2, 1), zorder=2, rwidth=0.9, sharex=False)
+    plt.suptitle(f'Distribution for water vs {col}')
+    plt.savefig(f'output/binary_dist_analysis {col}.png')"""
 
-plt.figure(figsize=(20,14))
+# Using Seaborn (Not melted data)
+"""for col in df_pandas.select_dtypes(include='number').columns[1:]:
+    g = sns.displot(
+        data=df_pandas, 
+        x=col, 
+        col='water', 
+        col_wrap=1,  
+        kind='hist', 
+        kde=True, 
+        bins=50,
+        height=7, 
+        aspect=1.5,
+        facet_kws={'sharex': False} # Each plot gets its own X-axis
+    )
+    g.fig.suptitle(f'Distribution Analysis: {col}')
+    g.tight_layout(pad=2)
+    plt.savefig(f'output/binary_dist_analysis {col}.png')
+    plt.close()"""
 
-for i, col in enumerate(df_pandas.select_dtypes(include='number').columns):
-    if i != 0:
-        print(i, col)
-        plt.subplot(1,10,i)
-        df_pandas.hist(column=col, by='water', bins=30, grid=True, figsize=(8, 10), layout=(2, 1), zorder=2, rwidth=0.9, sharex=False)
-        plt.title(f'Distribution plot for: {col}')
-        #plt.xlabel('')
-        plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
-plt.savefig('output/binary_dist_analysis.png')
+# Using Seaborn (With melt function)
+col = df_pandas.select_dtypes(include='number').columns[1:]
+molten_data = df_pandas.melt(id_vars='water', value_vars=col)
+g = sns.displot(
+    data=molten_data,
+    x='value',
+    col='variable',
+    row='water',
+    kind='hist',
+    kde=True,
+    bins=50,
+    facet_kws={'sharex': False, 'sharey': False},
+    height=4,
+    aspect=1.2
+)
+g.set_axis_labels("Value", "Count")
+g.set_titles(col_template="{col_name}", row_template="Water: {row_name}")
+plt.tight_layout()
+plt.savefig(f'output/binary_dist_analysis_mixed.png')
+plt.close()
 
 
 
