@@ -147,7 +147,7 @@ plt.savefig('output/output_dist_modis_water.png')"""
     plt.close()"""
 
 # Using Seaborn (With melt function)
-col = df_pandas.select_dtypes(include='number').columns[1:]
+"""col = df_pandas.select_dtypes(include='number').columns[1:]
 molten_data = df_pandas.melt(id_vars='water', value_vars=col)
 g = sns.displot(
     data=molten_data,
@@ -166,6 +166,17 @@ g.set_titles(col_template="{col_name}", row_template="Water: {row_name}")
 plt.tight_layout()
 plt.savefig(f'output/binary_dist_analysis_mixed.png')
 plt.close()
+"""
 
-
+# Outlier detection
+x = df_pandas['ndwi2']
+q1 = np.percentile(x,25)
+q3 = np.percentile(x,75)
+iqr = q3 - q1
+floor = q1 - 1.5*iqr
+ceiling = q3 + 1.5*iqr
+outlier_indices = list(x.index[(x<floor) | (x>ceiling)])
+outlier_values = x[(x<floor) | (x>ceiling)]
+sorted_outlier = np.sort(outlier_values)
+print(sorted_outlier)
 
