@@ -169,7 +169,7 @@ plt.close()
 """
 
 # Outlier detection
-x = df_pandas['ndwi2']
+"""x = df_pandas['ndwi2']
 q1 = np.percentile(x,25)
 q3 = np.percentile(x,75)
 iqr = q3 - q1
@@ -178,5 +178,22 @@ ceiling = q3 + 1.5*iqr
 outlier_indices = list(x.index[(x<floor) | (x>ceiling)])
 outlier_values = x[(x<floor) | (x>ceiling)]
 sorted_outlier = np.sort(outlier_values)
-print(sorted_outlier)
+print(sorted_outlier)"""
 
+# Feature engineering
+def add_interactions(df):
+    combos = list(combinations(list(df.columns),2))
+    colnames = list(df.columns) + ['_'.join(x) for  x in combos]       
+    poly = PolynomialFeatures(interaction_only=True, include_bias=False)
+    df = poly.fit_transform(df)
+    df = pd.DataFrame(df)
+    df.columns = colnames     
+    
+    # Removing zero valued columns
+    noint_indicies = [i for i, x in enumerate(list((df == 0).all())) if x]
+    df = df.drop(df.columns[noint_indicies], axis= 1)    
+    
+    return df
+
+df_pandas_expanded = add_interactions(df_pandas)
+print(df_pandas_expanded.head())
