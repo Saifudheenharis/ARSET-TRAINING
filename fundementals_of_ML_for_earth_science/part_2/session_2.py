@@ -187,7 +187,7 @@ def add_interactions(df):
     poly = PolynomialFeatures(interaction_only=True, include_bias=False)
     df = poly.fit_transform(df)
     df = pd.DataFrame(df)
-    df.columns = colnames     
+    df.columns = colnames
     
     # Removing zero valued columns
     noint_indicies = [i for i, x in enumerate(list((df == 0).all())) if x]
@@ -196,4 +196,22 @@ def add_interactions(df):
     return df
 
 df_pandas_expanded = add_interactions(df_pandas)
-print(df_pandas_expanded.head())
+#print(df_pandas_expanded.head())
+
+# PCA analysis
+pca = PCA().fit(df_pandas_expanded)
+cumulative_variance = pca.explained_variance_ratio_.cumsum()
+
+# Plot it
+"""plt.plot(cumulative_variance)
+plt.xlabel('Number of Components')
+plt.ylabel('Cumulative Explained Variance')
+plt.axhline(y=0.95, color='r', linestyle='--') # Red line at 95%
+plt.show()"""
+
+optimum_pc = np.argmax(cumulative_variance >= 0.99) + 1
+#print(optimum_pc)
+# Initializing new PCA as per the updated n_components
+pca = PCA(n_components=optimum_pc)
+X_pca = pd.DataFrame(pca.fit_transform(df_pandas_expanded))
+print(X_pca.head())
