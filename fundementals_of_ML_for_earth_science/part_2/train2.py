@@ -8,6 +8,7 @@ import datasets
 import datetime
 import numpy as np
 import pandas as pd
+import shutil
 from pathlib import Path
 from pprint import pprint
 
@@ -50,6 +51,9 @@ MODEL_OUTPUT_DIR = 'models2'
 # url of the dataset we will be using, this is a link to the Hugging Face repository
 # of this tutorial
 DATASET_URL = 'nasa-cisto-data-science-group/modis-lake-powell-toy-dataset'
+
+# directory where the raster data is downloaded
+RASTER_DIR = 'raster'
 
 # ratio of the dataset split for testing
 TEST_RATIO = 0.2
@@ -160,7 +164,8 @@ scoreAvg = np.asarray(scores).mean()
 # Regular fitting
 classifier.fit(X_train, y_train)
 score = classifier.score(X_test, y_test)
-print('Average accuracy score: {}'.format(score))
+print('Average accuracy score for regular fitting: {}'.format(score))
+print('Average accuracy score for K-fold fitting: {}'.format(bestModelScore))
 
 # Model testing and data validation
 classifier = bestModel
@@ -218,7 +223,6 @@ plt.show()"""
 
 # Restarted on 28/07/2026
 # Permutation Importance
-
 permutation_importance_results = permutation_importance(classifier,
                                                         X=X_test,
                                                         y=y_test,
@@ -232,10 +236,36 @@ png_save_path = 'mw_{}_{}_rf_{}_permutation_importance.png'.format(
 
 png_save_path = os.path.join(FIGURE_OUTPUT_DIR, png_save_path)
 
-# Market 28/07/2026
+# Marker 28/07/2026
 sorted_idx = permutation_importance_results.importances_mean.argsort()
 plt.figure(figsize=(8, 8))
 plt.barh(X_test.columns[sorted_idx], permutation_importance_results.importances_mean[sorted_idx])
 plt.xlabel("Permutation Importance")
 plt.tight_layout()
 plt.savefig(png_save_path)
+
+del X_train, X_test, y_train, y_test, test_predictions, train_predictions, y_test_int
+
+# Saving the model for future use
+model_save_path = 'mw_{}_{}_{}_2.0.0_tuned_{}.sav'.format(
+                                                          round(score, 3),
+                                                          hyperparameters['n_estimators'],
+                                                          'cpu',
+                                                          datetime.datetime.now().strftime('%Y_%m_%d_%H_%M'))
+model_save_path = os.path.join(MODEL_OUTPUT_DIR, model_save_path)
+
+print('Saving model to: {}'.format(model_save_path))
+print(classifier)
+joblib.dump(classifier, model_save_path, compress=3)
+
+# Raster inference
+# Data downloading
+if not os.path.exists(os.path.join(RASTER_DIR, "e22fb0ce2c73d603ff182183fbfc1476d0032d1d")):
+    print("Snapshot not found in this device, Starting download...")
+    powell_dataset = snapshot_download(repo_id=DATASET_URL, allow_patterns="*.tif", repo_type='dataset')
+    if os.path.exists(powell_dataset):
+        shutil.copytree(os.path.dirname(powell_dataset), RASTER_DIR, dirs_exist_ok=True)
+    else:
+        print("Dataset not found in the cache")
+
+
