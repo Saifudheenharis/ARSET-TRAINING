@@ -267,5 +267,66 @@ if not os.path.exists(os.path.join(RASTER_DIR, "e22fb0ce2c73d603ff182183fbfc1476
         shutil.copytree(os.path.dirname(powell_dataset), RASTER_DIR, dirs_exist_ok=True)
     else:
         print("Dataset not found in the cache")
+else:
+    powell_dataset = os.path.join(RASTER_DIR, "e22fb0ce2c73d603ff182183fbfc1476d0032d1d")
+
+fileList = sorted([file for file in glob.glob(os.path.join(powell_dataset, 'IL.*.Powell.*.tif')) if 'sur_refl' in file])
+
+# Feature engineering
+def readRastersToArray(fileList):
+    rasterProjection = None
+    newshp = (1300*1300, 10)
+    img = np.empty(newshp, dtype=np.int16)
+    for i, fileName in enumerate(fileList):
+        ds = gdal.Open(fileName)
+        img[:, i] = ds.GetRasterBand(1).ReadAsArray().astype(np.int16).ravel()
+        if i == 0:
+            rasterProjection = ds.GetProjection()
+        ds = None
+    img[:, len(fileList)] = ((img[:, 1] - img[:, 0]) / (img[:, 1] + img[:, 0])) * 10000
+    img[:, len(fileList)+1] = ((img[:, 1] - img[:, 5]) / (img[:, 1] + img[:, 5])) * 10000
+    img[:, len(fileList)+2] = ((img[:, 1] - img[:, 6]) / (img[:, 1] + img[:, 6])) * 10000
+    return img, rasterProjection
+
+im, rasterProjection = readRastersToArray(fileList)
+"""print('Raster as ndarray')
+print(im)
+print('{} MB size'.format((im.size * im.itemsize) / 1000000))"""
+
+# Data prepration
+raster_dataframe = pd.DataFrame(im, columns=v_names, dtype=np.float32)
+#print(raster_dataframe.describe())
+
+# Prediction phase
+def predictRaster(dataframe, colsToDrop=None):
+    """
+    Function given a raster in the form of a 
+    GPU/CPU-bound data frame then perform 
+    predictions given the loaded model.
+    
+    Return the prediction matrix, the prediction probabilities
+    for each and the dataframe converted to host.
+    """
+    df = dataframe.drop(columns=colsToDrop) if colsToDrop else dataframe
+    print('Making predictions from raster')
+    predictions = classifier.predict(df).astype(np.int16)
+    predictionsProbs = classifier.predict_proba(df).astype(np.float32)
+    return predictions, predictionsProbs
+
+predictedRaster, predictedProbaRaster = predictRaster(raster_dataframe)
+raster_shape = (1300, 1300)
+predictedRasterNdArray = np.asarray(predictedRaster)
+predictedRasterMatrix = predictedRasterNdArray.reshape(raster_shape)
+#print(predictedRasterMatrix)
+
+# Postprocessing (QA)
+qa = [file for file in glob.glob(os.path.join(powell_dataset, 'IL.*.Powell.*.tif')) if 'qa' in file][0]
+ds = gdal.Open(qa)
+qaMask = ds.GetRasterBand(1).ReadAsArray()
+raster_qad = np.where(qaMask == 0, predictedRasterMatrix, 255)
+
+# Visualizing the QA + Prediction mask
+plt.matshow(raster_qad)
+plt.colorbar()
 
 
