@@ -282,13 +282,14 @@ def readRastersToArray(fileList):
         img[:, i] = ds.GetRasterBand(1).ReadAsArray().astype(np.int16).ravel()
         if i == 0:
             rasterProjection = ds.GetProjection()
+            rasterTransform = ds.GetGeoTransform()
         ds = None
     img[:, len(fileList)] = ((img[:, 1] - img[:, 0]) / (img[:, 1] + img[:, 0])) * 10000
     img[:, len(fileList)+1] = ((img[:, 1] - img[:, 5]) / (img[:, 1] + img[:, 5])) * 10000
     img[:, len(fileList)+2] = ((img[:, 1] - img[:, 6]) / (img[:, 1] + img[:, 6])) * 10000
-    return img, rasterProjection
+    return img, rasterProjection, rasterTransform
 
-im, rasterProjection = readRastersToArray(fileList)
+im, rasterProjection, rasterTransform = readRastersToArray(fileList)
 """print('Raster as ndarray')
 print(im)
 print('{} MB size'.format((im.size * im.itemsize) / 1000000))"""
@@ -326,7 +327,24 @@ qaMask = ds.GetRasterBand(1).ReadAsArray()
 raster_qad = np.where(qaMask == 0, predictedRasterMatrix, 255)
 
 # Visualizing the QA + Prediction mask
-plt.matshow(raster_qad)
-plt.colorbar()
+"""plt.matshow(raster_qad)
+plt.colorbar()"""
+
+# Creating a new GeoTiff file for the mask
+
+rasterTransform
+predictedPath = 'PowellPredictedWaterMask.tif'
+
+driver = gdal.GetDriverByName('GTiff')
+outDs = driver.Create(predictedPath, 1300, 1300, 1, gdal.GDT_Int16, options=['COMPRESS=LZW'])
+outDs.SetGeoTransform(rasterTransform)
+outDs.SetProjection(rasterProjection)
+outBand = outDs.GetRasterBand(1)
+outBand.WriteArray(raster_qad)
+outBand.SetNoDataValue(255)
+outDs.FlushCache()
+outDs = None
+outBand = None
+driver = None
 
 
