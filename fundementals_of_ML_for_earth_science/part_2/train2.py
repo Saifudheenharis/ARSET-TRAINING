@@ -331,8 +331,6 @@ raster_qad = np.where(qaMask == 0, predictedRasterMatrix, 255)
 plt.colorbar()"""
 
 # Creating a new GeoTiff file for the mask
-
-rasterTransform
 predictedPath = 'PowellPredictedWaterMask.tif'
 
 driver = gdal.GetDriverByName('GTiff')
@@ -346,5 +344,14 @@ outDs.FlushCache()
 outDs = None
 outBand = None
 driver = None
+
+# Visualization stage on map
+mask_3857 = folium_helper.reproject_to_3857(predictedPath)
+mask_d = folium_helper.get_bounds(mask_3857)
+mask_b1 = folium_helper.open_and_get_band(mask_3857, 1)
+folium_helper.cleanup(mask_3857)
+mask_b1 = np.where(mask_b1 == 255, 0, mask_b1)
+zeros = np.zeros_like(mask_b1)
+mask_rgb = np.dstack((mask_b1, zeros, zeros))
 
 
