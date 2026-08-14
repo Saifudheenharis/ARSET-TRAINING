@@ -90,9 +90,11 @@ train_dataset = pd.DataFrame(datasets.load_dataset(DATASET_URL, split='train'))
 test_dataset = pd.DataFrame(datasets.load_dataset(DATASET_URL, split='test'))
 
 # Splitting data from Hugging Face
-"""X_train, y_train = train_dataset.drop(['water'], axis=1), train_dataset['water']
+"""
+X_train, y_train = train_dataset.drop(['water'], axis=1), train_dataset['water']
 X_test, y_test = test_dataset.drop(['water'], axis=1), test_dataset['water']
-print(X_train.shape, X_test.shape)"""
+print(X_train.shape, X_test.shape)
+"""
 
 # Scikit splitting method
 X_train, X_test, y_train, y_test = train_test_split(
@@ -180,17 +182,20 @@ for i, subarr in enumerate(prediction_probs):
 predictionProbabilityArray = np.asarray(predictionProbabilityList)
 
 # Visualization
-"""sns.displot(predictionProbabilityArray, bins=30)
+"""
+sns.displot(predictionProbabilityArray, bins=30)
 plt.title('Distribution of the probability of predicted values')
 plt.tight_layout()
-plt.show()"""
+plt.show()
+"""
 
 # Altering data types
 test_predictions = test_predictions.astype(np.int32)
 y_test_int = y_test.astype(np.int32)
 
 # Additional metrics
-"""print('Test Performance')
+"""
+print('Test Performance')
 print('-------------------------------------------------------')
 print(classification_report(y_test, test_predictions))
 cm = confusion_matrix(y_test_int, test_predictions)
@@ -200,13 +205,15 @@ print('-------------------------------------------------------')
 print(recall)
 print('Confusion Matrix')
 print('-------------------------------------------------------')
-print(cm)"""
+print(cm
+"""
 
 
 # Receiver Operating Characteristic (ROC) plots
 clf = classifier
 
-"""probs = clf.predict_proba(X_test)
+"""
+probs = clf.predict_proba(X_test)
 preds = probs[:, 1]
 fpr, tpr, threshold = roc_curve(y_test, preds)
 roc_auc = auc(fpr, tpr)
@@ -219,7 +226,8 @@ plt.xlim([0, 1])
 plt.ylim([0, 1])
 plt.ylabel('True Positive Rate')
 plt.xlabel('False Positive Rate')
-plt.show()"""
+plt.show()
+"""
 
 # Restarted on 28/07/2026
 # Permutation Importance
@@ -290,9 +298,13 @@ def readRastersToArray(fileList):
     return img, rasterProjection, rasterTransform
 
 im, rasterProjection, rasterTransform = readRastersToArray(fileList)
-"""print('Raster as ndarray')
+"""
+print(f'Raster projection: {rasterProjection}')
+print(f'Raster Transform: {rasterTransform}')
+print('Raster as ndarray')
 print(im)
-print('{} MB size'.format((im.size * im.itemsize) / 1000000))"""
+print('{} MB size'.format((im.size * im.itemsize) / 1000000))
+"""
 
 # Data prepration
 raster_dataframe = pd.DataFrame(im, columns=v_names, dtype=np.float32)
@@ -327,15 +339,17 @@ qaMask = ds.GetRasterBand(1).ReadAsArray()
 raster_qad = np.where(qaMask == 0, predictedRasterMatrix, 255)
 
 # Visualizing the QA + Prediction mask
-"""plt.matshow(raster_qad)
-plt.colorbar()"""
+"""
+plt.matshow(raster_qad)
+plt.colorbar()
+"""
 
 # Creating a new GeoTiff file for the mask
+geoTransform = (-9961223.407, 231.65635, 0.0, 4285642.633667, 0.0, -231.65635)
 predictedPath = 'PowellPredictedWaterMask.tif'
-
 driver = gdal.GetDriverByName('GTiff')
 outDs = driver.Create(predictedPath, 1300, 1300, 1, gdal.GDT_Int16, options=['COMPRESS=LZW'])
-outDs.SetGeoTransform(rasterTransform)
+outDs.SetGeoTransform(geoTransform)
 outDs.SetProjection(rasterProjection)
 outBand = outDs.GetRasterBand(1)
 outBand.WriteArray(raster_qad)
@@ -346,12 +360,19 @@ outBand = None
 driver = None
 
 # Visualization stage on map
+print('Starting visulaization...')
 mask_3857 = folium_helper.reproject_to_3857(predictedPath)
 mask_d = folium_helper.get_bounds(mask_3857)
 mask_b1 = folium_helper.open_and_get_band(mask_3857, 1)
 folium_helper.cleanup(mask_3857)
 mask_b1 = np.where(mask_b1 == 255, 0, mask_b1)
 zeros = np.zeros_like(mask_b1)
-mask_rgb = np.dstack((mask_b1, zeros, zeros))
+mask_rgb = np.dstack((zeros, mask_b1, zeros))
 
+m = folium.Map(location=[mask_d['center'][1], mask_d['center'][0]],
+                   tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', zoom_start = 6, attr='Google')
 
+m.add_child(folium_helper.get_overlay(mask_rgb, mask_d, 'Water classification RF predicted mask', opacity=0.6))
+m.add_child(plugins.MousePosition())
+m.add_child(folium.LayerControl())
+m.save("map.html")
